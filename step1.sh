@@ -1,0 +1,55 @@
+#! /bin/bash
+#
+# A script to toggle the step 1x per second
+
+# Motor 1
+# Set up VREF digipot
+i2cset -f -y 1 0x48 0xD1 0xE511 w
+i2cset -f -y 1 0x48 0x21 0xF001 w
+# Set up Motor Controller GPIO
+i2cset -f -y 1 0x20 0x01 0xE3
+i2cset -f -y 1 0x20 0x03 0xA3
+
+# Motor 2
+# Set up VREF digipot
+i2cset -f -y 1 0x49 0xD1 0xE511 w
+i2cset -f -y 1 0x49 0x21 0xF001 w
+# Set up Motor Controller GPIO
+i2cset -f -y 1 0x21 0x01 0xE3
+i2cset -f -y 1 0x21 0x03 0xA3
+
+# Motor 3
+# Set up VREF digipot
+i2cset -f -y 1 0x4A 0xD1 0xE511 w
+i2cset -f -y 1 0x4A 0x21 0xF001 w
+# Set up Motor Controller GPIO
+# 0xE3 = full step
+# 0xFF = 1/16th
+i2cset -f -y 1 0x22 0x01 0xE3
+i2cset -f -y 1 0x22 0x03 0xA3
+
+# Motor 4
+# Set up VREF digipot
+i2cset -f -y 1 0x4B 0xD1 0xE511 w
+i2cset -f -y 1 0x4B 0x21 0xF001 w
+# Set up Motor Controller GPIO
+# 0xE3 = full step
+# 0xFF = 1/16th
+i2cset -f -y 1 0x23 0x01 0xE3
+i2cset -f -y 1 0x23 0x03 0xA3
+
+# Setup Main GPIO controller
+i2cset -f -y 1 0x10 0x03 0x00 
+
+# Motor Test loop
+while :
+do
+	#echo "Setting step to 0"
+	i2cset -f -y 1 0x10 0x01 0x55 b
+	#busybox usleep 10
+	#echo "Setting step to 1"
+	i2cset -f -y 1 0x10 0x01 0xff b
+	#busybox usleep 10
+done
+
+
