@@ -89,6 +89,11 @@ my = SMotor(1, 0x49, 0x21)
 mz = SMotor(1, 0x4A, 0x22)
 m4 = SMotor(1, 0x4B, 0x23)
 
+# Set up digipot
+def initDigipot(motor, intVal):
+    motor.digipotVAL = intVal
+    i2cbus.write_word_data(motor.digipotI2C, 0xD1, 0xE511)
+    i2cbus.write_word_data(motor.digipotI2C, 0x21, 0xF001)
 
 # Turn a motor on or off with ON and OFF variables
 def motorONOFF(motor, intVal):
@@ -182,7 +187,7 @@ def motorSTEPSIZE(motor, stepsize):
 
 # Set one motor direction
 def motorDIR(motor, mdir):
-    if(str(motor) == "mx"):
+    if(motor == mx):
         dirbit = 6
     elif(motor == my):
         dirbit = 4
@@ -208,7 +213,7 @@ def motorSTEP(motor, delay, stepnum):
         motorRESET(motor, 1)  # Bring motor out of reset
     else:
         raise ValueError("motor is not enabled")
-    if(str(motor) == "mx"):
+    if(motor == mx):
         stepbit = 7
     elif(motor == my):
         stepbit = 5
@@ -241,9 +246,13 @@ def bitmanip(byte, bitpos, bitval):
 
 
 # Test section
+
 print(mx.enable)
-motorONOFF(mx, ON)
-motorDIR(mx, 1)
-motorSTEPSIZE(mx, 0)
-motorRESET(mx, 1)
-motorSTEP(mx, 100, 500)
+initDigipot(m4, 0x1F)
+motorONOFF(m4, ON)
+motorDIR(m4, 1)
+motorSTEPSIZE(m4, 0)
+motorRESET(m4, 1)
+motorSTEP(m4, 100, 1000)
+motorONOFF(m4, OFF)
+motorRESET(m4, 0)
