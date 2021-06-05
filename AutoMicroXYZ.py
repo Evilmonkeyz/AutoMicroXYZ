@@ -40,6 +40,11 @@
 from smbus import SMBus
 import time
 
+
+def usleep(x):
+    time.sleep(x/1000000.0)
+
+
 # Variables
 OFF = 1
 ON = 0
@@ -74,13 +79,14 @@ class SMotor:
     sleep = 1
     reset = 0
     stepsize = 0
+    mdir = 0
 # end Motor Class
 
 
 # Initialize all four motors
-m1 = SMotor(1, 0x48, 0x20)
-m2 = SMotor(1, 0x49, 0x21)
-m3 = SMotor(1, 0x4A, 0x22)
+mx = SMotor(1, 0x48, 0x20)
+my = SMotor(1, 0x49, 0x21)
+mz = SMotor(1, 0x4A, 0x22)
 m4 = SMotor(1, 0x4B, 0x23)
 
 
@@ -116,13 +122,113 @@ def motorONOFF(motor, intVal):
         print("Turning on Motor")
 
 
+# Place a motor driver into reset or bring it out of reset
+def motorRESET(motor, intVal):
+    motor.reset = intVal
+    # Update output value
+    tempval = i2cbus.read_byte_data(motor.gpioI2C, GPIOVAL)
+    tempval = bitmanip(tempval, 6, intVal)  # Set bit 6 to 1
+    i2cbus.write_byte_data(motor.gpioI2C, GPIOVAL, tempval)
+    # Update control regsiter (1 = input, 0 = output)
+    tempctl = i2cbus.read_byte_data(motor.gpioI2C, GPIOCTL)
+    tempctl = bitmanip(tempctl, 6, 0)  # Set bit 6 to output
+    i2cbus.write_byte_data(motor.gpioI2C, GPIOCTL, tempctl)
+
+
+# Set motor step size.
+def motorSTEPSIZE(motor, stepsize):
+    # stepsize    = 0 = Full, 1 = 1/2th, 2 = 1/4th, 3 = 1/8th , 7 = 1/16th
+    bitM1 = 0
+    bitM2 = 0
+    bitM3 = 0
+    # Fullstep
+    if(stepsize == 0):
+        motor.stepsize = stepsize
+    # Halfstep
+    elif(stepsize == 1):
+        motor.stepsize = stepsize
+        bitM1 = 1
+    # Fourthstep
+    elif(stepsize == 2):
+        motor.stepsize = stepsize
+        bitM2 = 1
+    # Eightstep
+    elif(stepsize == 3):
+        motor.stepsize = stepsize
+        bitM1 = 1
+        bitM2 = 1
+    # Sixteenthstep
+    elif(stepsize == 7):
+        motor.stepsize = stepsize
+        bitM1 = 1
+        bitM2 = 1
+        bitM3 = 1
+    else:
+        raise ValueError("stepsize can only be 0,1,2,3 or 7")
+
+    # Update output value for steps
+    tempval = i2cbus.read_byte_data(motor.gpioI2C, GPIOVAL)
+    tempval = bitmanip(tempval, 4, bitM1)
+    tempval = bitmanip(tempval, 3, bitM2)
+    tempval = bitmanip(tempval, 2, bitM3)
+    i2cbus.write_byte_data(motor.gpioI2C, GPIOVAL, tempval)
+    # Update control regsiter (1 = input, 0 = output)
+    tempctl = i2cbus.read_byte_data(motor.gpioI2C, GPIOCTL)
+    tempctl = bitmanip(tempctl, 4, 0)
+    tempctl = bitmanip(tempctl, 3, 0)
+    tempctl = bitmanip(tempctl, 2, 0)
+    i2cbus.write_byte_data(motor.gpioI2C, GPIOCTL, tempctl)
+
+
+# Set one motor direction
+def motorDIR(motor, mdir):
+    if(str(motor) == "mx"):
+        dirbit = 6
+    elif(motor == my):
+        dirbit = 4
+    elif(motor == mz):
+        dirbit = 2
+    elif(motor == m4):
+        dirbit = 0
+    else:
+        raise ValueError("Wrong value for motor specified.")
+    motor.mdir = mdir
+    tempval = i2cbus.read_byte_data(0x10, GPIOVAL)
+    tempval = bitmanip(tempval, dirbit, mdir)
+    i2cbus.write_byte_data(0x10, GPIOVAL, tempval)
+    tempctl = i2cbus.read_byte_data(0x10, GPIOCTL)
+    tempctl = bitmanip(tempctl, dirbit, 0)
+    i2cbus.write_byte_data(0x10, GPIOCTL, tempctl)
+
+
 # Motor driving Functions
-def motorSTEP(motor, mdir, speed, stepnum):
+def motorSTEP(motor, delay, stepnum):
     # First check if motor if enabled
     if(motor.enable == 0):
-        motor.reset = 1  # Bring motor out of reset
-        tempd = i2cbus.read_byte_data(motor.gpioI2C, 0x00)
-        tempd = bitmanip(tempd, 7, 1)      # set to 1, disable motor
+        motorRESET(motor, 1)  # Bring motor out of reset
+    else:
+        raise ValueError("motor is not enabled")
+    if(str(motor) == "mx"):
+        stepbit = 7
+    elif(motor == my):
+        stepbit = 5
+    elif(motor == mz):
+        stepbit = 3
+    elif(motor == m4):
+        stepbit = 1
+    else:
+        raise ValueError("Wrong value for motor specified.")
+    # Enable GPIO outputs
+    i2cbus.write_byte_data(0x10, GPIOCTL, 0x00)  # set all to outputs
+    # Get state of all outputs
+    tempval = i2cbus.read_byte_data(0x10, GPIOVAL)
+    # Loop through the step function for 2*"stepnum", at "delay" us rate
+    print("Stepping for: " + str(stepnum) + " steps")
+    for x in range(stepnum*2):
+        usleep(delay)
+        i2cbus.write_byte_data(0x10, GPIOVAL, bitmanip(tempval, stepbit, 0))
+        usleep(delay)
+        i2cbus.write_byte_data(0x10, GPIOVAL, bitmanip(tempval, stepbit, 1))
 
 
 # Method for manipulating individual bits in a byte
@@ -135,9 +241,9 @@ def bitmanip(byte, bitpos, bitval):
 
 
 # Test section
-print(m1.enable)
-motorONOFF(m1, ON)
-print(m1.enable)
-motorONOFF(m1, OFF)
-print(m1.enable)
-
+print(mx.enable)
+motorONOFF(mx, ON)
+motorDIR(mx, 1)
+motorSTEPSIZE(mx, 0)
+motorRESET(mx, 1)
+motorSTEP(mx, 100, 500)
