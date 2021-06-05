@@ -91,33 +91,33 @@ def motorONOFF(motor, intVal):
     tempd = i2cbus.read_byte_data(motor.gpioI2C, 0x00)
     tempval = i2cbus.read_byte_data(motor.gpioI2C, GPIOVAL)
     tempctl = i2cbus.read_byte_data(motor.gpioI2C, GPIOCTL)
-    print("Value of motor" + motor + " GPIO: " + tempd)
-    print("Value of motor" + motor + " val: " + tempval)
-    print("Value of motor" + motor + " ctl: " + tempctl)
+    print("Value of motor  GPIO: " + str(hex(tempd)))
+    print("Value of motor  val: " + str(hex(tempval)))
+    print("Value of motor  ctl: " + str(hex(tempctl)))
     if(intVal == 1):
         tempd = bitmanip(tempd, 7, 1)      # set to 1, disable motor
         tempval = bitmanip(tempval, 7, 1)  # set to 1, don't care
         tempctl = bitmanip(tempctl, 7, 1)  # Set to 1, GPIO is input
         i2cbus.write_byte_data(motor.gpioI2C, GPIOVAL, tempval)
         i2cbus.write_byte_data(motor.gpioI2C, GPIOCTL, tempctl)
-        print("Value of motor" + motor + " GPIO: " + tempd)
-        print("Value of motor" + motor + " val: " + tempval)
-        print("Value of motor" + motor + " ctl: " + tempctl)
-        print("Turning off Motor" + motor)
+        print("Value of motor GPIO: " + str(hex(tempd)))
+        print("Value of motor val: " + str(hex(tempval)))
+        print("Value of motor  ctl: " + str(hex(tempctl)))
+        print("Turning off Motor")
     elif(intVal == 0):
         tempd = bitmanip(tempd, 7, 0)      # set to 0, enable motor
         tempval = bitmanip(tempval, 7, 0)  # set to 0, drive low
         tempctl = bitmanip(tempctl, 7, 0)  # Set to 0, GPIO is output
         i2cbus.write_byte_data(motor.gpioI2C, GPIOVAL, tempval)
         i2cbus.write_byte_data(motor.gpioI2C, GPIOCTL, tempctl)
-        print("Value of motor" + motor + " GPIO: " + tempd)
-        print("Value of motor" + motor + " val: " + tempval)
-        print("Value of motor" + motor + " ctl: " + tempctl)
-        print("Turning on Motor" + motor)
+        print("Value of motor  GPIO: " + str(hex(tempd)))
+        print("Value of motor  val: " + str(hex(tempval)))
+        print("Value of motor  ctl: " + str(hex(tempctl)))
+        print("Turning on Motor")
 
 
 # Motor driving Functions
-def motorSTEP(motor, dir, speed, stepnum):
+def motorSTEP(motor, mdir, speed, stepnum):
     # First check if motor if enabled
     if(motor.enable == 0):
         motor.reset = 1  # Bring motor out of reset
@@ -135,8 +135,9 @@ def bitmanip(byte, bitpos, bitval):
 
 
 # Test section
-# print(m1.enable)
-# motorONOFF(m1, ON)
-# print(m1.enable)
-# motorONOFF(m1, OFF)
-# print(m1.enable)
+print(m1.enable)
+motorONOFF(m1, ON)
+print(m1.enable)
+motorONOFF(m1, OFF)
+print(m1.enable)
+
