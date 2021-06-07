@@ -39,7 +39,6 @@
 # imports
 from smbus import SMBus
 import time
-from threading import Timer
 
 
 def usleep(x):
@@ -94,7 +93,7 @@ m4 = SMotor(1, 0x4B, 0x23)
 def initDigipot(motor, intVal):
     motor.digipotVAL = intVal
     i2cbus.write_word_data(motor.digipotI2C, 0xD1, 0xE511)
-    i2cbus.write_word_data(motor.digipotI2C, 0x21, 0xF001)
+    i2cbus.write_word_data(motor.digipotI2C, 0x21, 0xF006)
 
 # Turn a motor on or off with ON and OFF variables
 def motorONOFF(motor, intVal):
@@ -212,7 +211,6 @@ def motorSTEP(motor, delay, stepnum):
     # First check if motor if enabled
     if(motor.enable == 0):
         motorRESET(motor, 1)  # Bring motor out of reset
-        time.sleep(0.1)
     else:
         raise ValueError("motor is not enabled")
     if(motor == mx):
@@ -231,45 +229,12 @@ def motorSTEP(motor, delay, stepnum):
     tempval = i2cbus.read_byte_data(0x10, GPIOVAL)
     # Loop through the step function for "stepnum", at "delay" us rate
     print("Stepping for: " + str(stepnum) + " steps")
-    delayON = delay/1000000
-    delayOFF = delay/10000000
-    lowDrive = bitmanip(tempval, stepbit, 0)
-    highDrive = bitmanip(tempval, stepbit, 1)
-    
-    tON = Timer(delayON, stepLOW(lowDrive))
-    tOFF = Timer(delayOFF, stepHIGH(highDrive))
-
+    delay = delay/1000000
     for x in range(stepnum):
-        stepLOW(lowDrive)
-        time.sleep(delayON)
-        #delayloop(delay)
-        stepHIGH(highDrive)
-        time.sleep(delayON)
-        #delayloop(delay)
-
-        #tON.start()
-        #tOFF.start()
-        #tON.cancel()
-        #tOFF.cancel()
-        #tON = Timer(delayON, stepLOW(lowDrive))
-        #tOFF = Timer(delayOFF, stepHIGH(highDrive))
-        #time.sleep(delayON)
-        # delayloop(delay)
-        #i2cbus.write_byte_data(0x10, GPIOVAL, lowDrive)
-        #time.sleep(delayOFF)
-        #delayloop(delay)
-        #i2cbus.write_byte_data(0x10, GPIOVAL, highDrive)
-        #print(x)
-
-
-# Function to step high
-def stepLOW(databyte):
-    i2cbus.write_byte_data(0x10, GPIOVAL, databyte)
-
-
-# Function to step low
-def stepHIGH(databyte):
-    i2cbus.write_byte_data(0x10, GPIOVAL, databyte)
+        time.sleep(delay)
+        i2cbus.write_byte_data(0x10, GPIOVAL, bitmanip(tempval, stepbit, 0))
+        time.sleep(delay)
+        i2cbus.write_byte_data(0x10, GPIOVAL, bitmanip(tempval, stepbit, 1))
 
 
 # Method for manipulating individual bits in a byte
@@ -280,56 +245,46 @@ def bitmanip(byte, bitpos, bitval):
         byte = byte & ~(1 << bitpos)
     return byte
 
-def delayloop(delay):
-    for x in range(delay):
-        pass
 
 # Test section
-#print("Please select the motor you want to drive from mx, my, mz, or m4, and then press ENTER")
-#motorSEL = str(input())
-#print(motorSEL)
-#print(mx.enable)
+
+print(mx.enable)
 initDigipot(mx, 0x1F)
 initDigipot(my, 0x1F)
 initDigipot(mz, 0x1F)
 initDigipot(m4, 0x1F)
-
-motorDIR(m4, 1)
-motorSTEPSIZE(m4, 7)
-motorRESET(m4, 0)
-motorONOFF(m4, ON)
-#motorRESET(mz, 1)
-motorSTEP(m4, 10,1600)
+motorONOFF(mz, ON)
+motorRESET(mz, 0)
+motorDIR(mz, 1)
+motorSTEPSIZE(mz, 0)
+motorRESET(mz, 1)
+motorSTEP(mz, 100, 2000)
 # motorONOFF(m4, OFF)
-motorRESET(m4, 0)
-#motorRESET(mz, 1)
-
-
-#time.sleep(0.0001)
-#motorSTEPSIZE(mz, 1)
-#motorSTEP(mz, 2000, 2000)
+motorRESET(mz, 0)
+motorRESET(mz, 1)
+time.sleep(0.0001)
+motorSTEPSIZE(mz, 1)
+motorSTEP(mz, 100, 2000)
 # motorRESET(m4, 0)
-#motorRESET(mz, 0)
-#motorRESET(mz, 1)
-#time.sleep(0.0001)
-#motorSTEPSIZE(mz, 2)
-#motorSTEP(mz, 2000, 2000)
+motorRESET(mz, 0)
+motorRESET(mz, 1)
+time.sleep(0.0001)
+motorSTEPSIZE(mz, 2)
+motorSTEP(mz, 100, 2000)
 # motorRESET(m4, 0)
-#motorRESET(mz, 0)
-# motorRESET(mz, 1)
-#time.sleep(0.0001)
-#motorSTEPSIZE(mz, 3)
-#motorSTEP(mz, 2000, 2000)
+motorRESET(mz, 0)
+motorRESET(mz, 1)
+time.sleep(0.0001)
+motorSTEPSIZE(mz, 3)
+motorSTEP(mz, 100, 2000)
 # motorRESET(m4, 0)
-#motorRESET(mz, 0)
-# motorRESET(mz, 1)
-#time.sleep(0.0001)
-#motorSTEPSIZE(mz, 7)
-#motorDIR(mz, 0)
-#motorSTEP(mz, 2000, 2000)
-#motorONOFF(mz, OFF)
-#motorRESET(mz, 0)
-#motorRESET(mx, 0)
-
-i2cbus.close()
+motorRESET(mz, 0)
+motorRESET(mz, 1)
+time.sleep(0.0001)
+motorSTEPSIZE(mz, 7)
+motorDIR(mz, 0)
+motorSTEP(mz, 100, 2000)
+motorONOFF(mz, OFF)
+motorRESET(mz, 0)
+motorRESET(mx, 0)
 
